@@ -60,7 +60,7 @@ def max_drawdown(equity):
 if __name__ == '__main__':
     print("=" * 70)
     print(f"TREND-FOLLOWING (MA={MA_PERIOD}, standard letteratura) vs BUY & HOLD")
-    print("Intero periodo disponibile (3 anni), equity curve giornaliera")
+    print("Intero periodo disponibile, equity curve giornaliera")
     print("=" * 70)
 
     trend_final, bh_final = [], []
@@ -68,6 +68,7 @@ if __name__ == '__main__':
 
     for symbol in SYMBOLS:
         df = load_daily(symbol)
+        period_days = (df['timestamp'].iloc[-1] - df['timestamp'].iloc[0]).days
         eq_trend = equity_curve_trend(df, MA_PERIOD)
         eq_bh = equity_curve_bh(df)
 
@@ -81,12 +82,13 @@ if __name__ == '__main__':
         trend_dd.append(t_dd)
         bh_dd.append(b_dd)
 
-        print(f"\n{symbol}:")
+        print(f"\n{symbol}: ({len(df)} candele, {period_days / 365.25:.1f} anni, "
+              f"{df['timestamp'].iloc[0].date()} -> {df['timestamp'].iloc[-1].date()})")
         print(f"   Trend-following: {t_final:+8.1f}%   Max Drawdown: {t_dd:6.1f}%")
         print(f"   Buy & Hold:      {b_final:+8.1f}%   Max Drawdown: {b_dd:6.1f}%")
 
     print("\n" + "=" * 70)
-    print("MEDIE SUI 6 SIMBOLI")
+    print(f"MEDIE SUI {len(SYMBOLS)} SIMBOLI")
     print("=" * 70)
     print(f"Trend-following: rendimento medio {np.mean(trend_final):+.1f}%  |  drawdown medio {np.mean(trend_dd):.1f}%")
     print(f"Buy & Hold:      rendimento medio {np.mean(bh_final):+.1f}%  |  drawdown medio {np.mean(bh_dd):.1f}%")

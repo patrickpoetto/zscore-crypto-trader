@@ -126,6 +126,13 @@ if __name__ == '__main__':
         results.append(s)
 
     valid = [r for r in results if r.get('n_trades', 0) >= 50]
+    if not valid:
+        print("\n⚠️  Nessuna combinazione con >= 50 trade su train (campione dati troppo piccolo): "
+              "fallback sulle combinazioni con almeno 1 trade, interpretare con cautela.")
+        valid = [r for r in results if r.get('n_trades', 0) > 0]
+    if not valid:
+        print("\n❌ Nessuna combinazione ha generato trade su train: dataset troppo piccolo, impossibile procedere.")
+        raise SystemExit(1)
     valid.sort(key=lambda r: r['expectancy_pct_per_trade'], reverse=True)
 
     print("\nTop 10 per expectancy (train, >= 50 trade):")

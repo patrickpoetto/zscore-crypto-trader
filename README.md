@@ -49,7 +49,8 @@ Key capabilities:
 ├── paper_trade_*.py              # Paper trading / simulated execution
 ├── optimize_breakout_*.py        # Parameter optimization scripts
 ├── research_ablation.py          # Strategy component ablation study
-├── fetch_historical_data.py      # Historical OHLCV data fetcher
+├── fetch_historical_data.py      # Historical OHLCV data fetcher (Binance public API; 1m/1h/1d via --interval)
+├── fetch_funding_data.py         # Perpetual funding-rate history fetcher (Binance public API)
 ├── fetch_hyperliquid_candles.py  # Hyperliquid candle data fetcher
 ├── create_wallet.py / create_test_wallet.py  # Wallet generation (mainnet/testnet)
 ├── requirements.txt
@@ -83,15 +84,64 @@ Key capabilities:
 
    See `BINANCE_SETUP.md` and `TESTNET_GUIDE.md` for setup walkthroughs.
 
-4. **Run a backtest first** (no credentials required for most backtests, only historical data):
+4. **Fetch some real historical data, then run a backtest** (no API keys needed — this hits
+   Binance's public market-data endpoints, which are read-only and don't require
+   authentication):
    ```bash
+   python fetch_historical_data.py --days 5 --symbols BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT,ADAUSDT,AVAXUSDT,INJUSDT
    python backtest.py
    ```
+   `backtest.py` runs the Exhaustion Reversal scalping variant (`strategy_scalping.py`) with
+   a walk-forward train/test split (70/30) on whatever is in `data/`. All of this was verified
+   to run end-to-end against real data pulled live from Binance while preparing this repo.
+
+   **Honest note on the headline strategy:** the Z-score mean-reversion strategy in
+   `strategy.py` (the one `bot.py` actually trades live) has **no dedicated backtest script**
+   in this repo. The backtesting suite below was built to explore *other* strategy ideas —
+   none of it validates the live bot's own signal. Treat `strategy.py` as an illustrative,
+   unvalidated starting point, not a strategy with demonstrated edge.
+
+   Other backtest variants and the data they need (fetch with `--interval {1m,1h,1d}`):
+   | Script | Strategy | Data needed |
+   |---|---|---|
+   | `backtest.py` | Exhaustion Reversal scalping (`strategy_scalping.py`) | `{SYM}_1m.csv` |
+   | `backtest_breakout.py` | Donchian + LWTI breakout (`strategy_breakout.py`) | `{SYM}_1m.csv` (resampled to 5m) |
+   | `backtest_vwap.py` | VWAP Reclaim (`strategy_vwap.py`) | `{SYM}_1m.csv` (resampled to 5m) |
+   | `backtest_pairs.py` | Relative-value pairs (`strategy_pairs.py`) | `{SYM}_1m.csv` |
+   | `backtest_trend.py` / `backtest_trend_equity.py` | Simple MA trend-following | `{SYM}_1d.csv` (fetch with `--interval 1d`, e.g. `BTCEUR`) |
+   | `backtest_funding.py` | Funding-rate extreme reversal | `{SYM}_1h.csv` (fetch with `--interval 1h`) + `{SYM}_funding.csv` (`python fetch_funding_data.py`) |
+
+   `optimize_breakout_entry.py`, `optimize_breakout_exits.py`, and `research_ablation.py` are
+   parameter-search/ablation tooling built on top of `backtest_breakout.py` / `backtest.py` —
+   useful to see the methodology, but note that with only a few days of sample data these
+   grid searches have very few trades per bucket and should not be read as statistically
+   meaningful; they need weeks/months of history (raise `--days`) to say anything real.
 
 5. **Run the bot** (after configuring `.env` and ideally testing on testnet):
    ```bash
    python bot.py
    ```
+   This genuinely requires live credentials (Binance API keys for CEX mode, or an Alchemy key
+   + funded wallet for DEX mode) that are **not included** and that a reader cloning this repo
+   will need to supply themselves — there is no way to exercise live trading without them.
+
+## What's demonstrable without any credentials
+
+- All of `fetch_historical_data.py` / `fetch_funding_data.py` and every `backtest*.py` /
+  `optimize_breakout_*.py` / `research_ablation.py` script: real, public Binance market data,
+  no account or key required.
+- `python3 -m py_compile` on all 30+ `.py` files passes cleanly.
+
+## What requires your own credentials/data (not runnable as-is)
+
+- `bot.py` (live/paper trading), `check_portfolio.py`, `cleanup_*.py`, `reduce_capital.py`:
+  need real Binance API keys and/or a funded wallet.
+- `create_wallet.py` / `create_test_wallet.py`: just generate a keypair locally, no network
+  calls, safe to run, but pointless without funding the resulting address.
+- `hyperliquid_client.py`, `fetch_hyperliquid_candles.py`: need a Hyperliquid account/wallet.
+- `paper_trade_*.py`: simulate execution against **live** order-book/order-flow data —
+  they need a live exchange connection (read-only market data, no keys, but ongoing network
+  access), so they aren't a one-shot reproducible run the way the backtests are.
 
 ## Disclaimer
 

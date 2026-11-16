@@ -139,6 +139,8 @@ if __name__ == '__main__':
 
     # Salva log dettagliato
     import csv
+    import os
+    os.makedirs('reports', exist_ok=True)
     with open('reports/backtest_breakout_trades.csv', 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['symbol', 'entry_time', 'exit_time', 'entry_price', 'stop_loss',

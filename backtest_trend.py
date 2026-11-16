@@ -164,7 +164,7 @@ if __name__ == '__main__':
                   f"exp={s['expectancy_pct_per_trade']:+.2f}% pf={s['profit_factor']:.2f}")
 
     # Confronto con semplice buy&hold sullo stesso periodo di test
-    print("\n--- Confronto Buy & Hold (stesso periodo test, media sui 6 simboli) ---")
+    print(f"\n--- Confronto Buy & Hold (stesso periodo test, media sui {len(SYMBOLS)} simboli) ---")
     bh_returns = []
     for symbol, df in data.items():
         _, test_df = split_train_test(df)
